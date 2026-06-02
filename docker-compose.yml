@@ -1,0 +1,28 @@
+services:
+  app:
+    image: php:8.3-cli
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+    ports:
+      - "8000:8000"
+    command: php artisan serve --host=0.0.0.0 --port=8000
+    depends_on:
+      - setup
+
+  setup:
+    image: composer:2
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+    entrypoint: /bin/sh
+    command: -c "composer install && cp -n .env.example .env && php artisan key:generate && touch database/database.sqlite && php artisan migrate --force && php artisan db:seed --force"
+
+  worker:
+    image: php:8.3-cli
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+    command: php artisan queue:work --tries=3
+    depends_on:
+      - setup
